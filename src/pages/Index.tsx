@@ -1,52 +1,39 @@
 
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import AuthForm from "@/components/AuthForm";
-import ChatInterface from "@/components/ChatInterface";
-import VideoCall from "@/components/VideoCall";
-import { useToast } from "@/components/ui/use-toast";
+import { useState, useEffect } from "react";
+import Sidebar from "@/components/Sidebar";
+import WeeklyTimeline from "@/components/WeeklyTimeline";
+import Notes from "@/components/Notes";
+import YearPlan from "@/components/YearPlan";
+import MultiYearPlan from "@/components/MultiYearPlan";
+import LifeGoals from "@/components/LifeGoals";
 
 const Index = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState("");
-  const [isInVideoCall, setIsInVideoCall] = useState(false);
-  const { toast } = useToast();
+  const [currentPage, setCurrentPage] = useState("weekly");
 
-  const handleLogin = (username: string, password: string) => {
-    // In a real app, you'd validate against a secure backend
-    // For this demo, we'll simulate successful login
-    if (username && password) {
-      setUsername(username);
-      setIsLoggedIn(true);
-      toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in to Secret Sweetheart",
-      });
+  // Render the appropriate component based on the current page
+  const renderPage = () => {
+    switch (currentPage) {
+      case "weekly":
+        return <WeeklyTimeline />;
+      case "notes":
+        return <Notes />;
+      case "year-plan":
+        return <YearPlan />;
+      case "long-term":
+        return <MultiYearPlan />;
+      case "life-goals":
+        return <LifeGoals />;
+      default:
+        return <WeeklyTimeline />;
     }
   };
 
-  const handleStartVideoCall = () => {
-    setIsInVideoCall(true);
-  };
-
-  const handleEndVideoCall = () => {
-    setIsInVideoCall(false);
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-4xl h-[600px] shadow-xl overflow-hidden">
-        {!isLoggedIn ? (
-          <AuthForm onLogin={handleLogin} />
-        ) : isInVideoCall ? (
-          <VideoCall onEndCall={handleEndVideoCall} />
-        ) : (
-          <ChatInterface 
-            username={username}
-            onStartVideoCall={handleStartVideoCall} 
-          />
-        )}
-      </Card>
+    <div className="min-h-screen flex bg-background">
+      <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
+        {renderPage()}
+      </main>
     </div>
   );
 };

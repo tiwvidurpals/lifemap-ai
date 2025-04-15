@@ -52,6 +52,16 @@ export default {
 				card: {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
+				},
+				lifemap: {
+					blue: '#4A9DFF',
+					green: '#4AD991',
+					purple: '#9A7EF3',
+					red: '#FF7979',
+					yellow: '#FFD166',
+					navy: '#2E3A59',
+					gray: '#8A9BB2',
+					lightGray: '#F7F9FC'
 				}
 			},
 			borderRadius: {
