@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import WeeklyTimeline from "@/components/WeeklyTimeline";
 import Notes from "@/components/Notes";
@@ -29,10 +29,12 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen flex bg-background">
+    <div className="min-h-screen flex flex-col md:flex-row bg-background">
       <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        {renderPage()}
+      <main className="flex-1 p-4 md:p-6 w-full h-[calc(100vh-4rem)] md:h-screen overflow-y-auto">
+        <div className="max-w-6xl mx-auto">
+          {renderPage()}
+        </div>
       </main>
     </div>
   );
