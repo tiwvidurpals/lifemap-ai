@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import UserProfile from "@/components/UserProfile";
 
 type SidebarProps = {
   currentPage: string;
@@ -57,7 +58,7 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
         />
         
         <div className={cn(
-          "fixed top-0 left-0 z-50 h-full w-64 bg-card border-r shadow-lg transition-transform duration-300",
+          "fixed top-0 left-0 z-50 h-full w-64 bg-card border-r shadow-lg transition-transform duration-300 flex flex-col",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <div className="p-4 border-b flex items-center justify-between">
@@ -84,6 +85,8 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
               </Button>
             ))}
           </div>
+          
+          <UserProfile />
         </div>
       </>
     );
@@ -123,6 +126,8 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
           </Button>
         ))}
       </div>
+      
+      {!isCollapsed && <UserProfile />}
     </div>
   );
 };
