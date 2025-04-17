@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import AuthForm from '@/components/AuthForm';
+import { Facebook, Github } from 'lucide-react';
 
 const Auth = () => {
   const { user, loading, signIn, signUp, signInWithProvider } = useAuth();
