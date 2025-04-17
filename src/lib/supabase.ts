@@ -18,9 +18,15 @@ export const supabase = createClient(
   supabaseAnonKey || 'placeholder-key'  // Fallback value
 );
 
+export type UserMetadata = {
+  full_name?: string;
+  age?: number;
+};
+
 export type AuthUser = {
   id: string;
   email?: string;
+  metadata?: UserMetadata;
 };
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
@@ -31,6 +37,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     return {
       id: user.id,
       email: user.email,
+      metadata: user.user_metadata as UserMetadata
     };
   } catch (error) {
     console.error('Error getting current user:', error);

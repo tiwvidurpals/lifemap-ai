@@ -7,7 +7,8 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, metadata?: { [key: string]: any }) => Promise<void>;
+  signInWithProvider: (provider: "google" | "facebook" | "github") => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -60,9 +61,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, metadata?: { [key: string]: any }) => {
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
+      const { error } = await supabase.auth.signUp({ 
+        email, 
+        password,
+        options: {
+          data: metadata
+        }
+      });
       if (error) throw error;
       toast({
         title: "Account created",
@@ -72,6 +79,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({
         title: "Sign up failed",
         description: error.message || "An error occurred during sign up.",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  const signInWithProvider = async (provider: "google" | "facebook" | "github") => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({ 
+        provider,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        }
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: `${provider} sign in failed`,
+        description: error.message || "An error occurred during sign in.",
         variant: "destructive",
       });
       throw error;
@@ -97,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signInWithProvider, signOut }}>
       {children}
     </AuthContext.Provider>
   );
