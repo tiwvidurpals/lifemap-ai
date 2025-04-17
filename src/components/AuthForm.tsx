@@ -122,7 +122,7 @@ const AuthForm = ({ onLogin, onSocialLogin }: AuthFormProps) => {
         </div>
       </CardContent>
       <CardFooter className="text-center text-sm text-muted-foreground">
-        Protected conversations, just for the two of you ❤️
+        Your personal roadmap to achieving life goals
       </CardFooter>
     </Card>
   );
