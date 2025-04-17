@@ -43,8 +43,8 @@ const AuthForm = ({ onLogin, onSocialLogin }: AuthFormProps) => {
         <div className="flex justify-center mb-4">
           <Heart className="text-primary w-12 h-12" />
         </div>
-        <CardTitle className="text-3xl font-bold">Secret Sweetheart</CardTitle>
-        <CardDescription>Sign in to connect with your sweetheart</CardDescription>
+        <CardTitle className="text-3xl font-bold">LifeMap</CardTitle>
+        <CardDescription>Sign in to start planning your journey</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">

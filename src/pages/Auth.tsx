@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
@@ -20,7 +19,6 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Redirect to home if already authenticated
   if (user && !loading) {
     return <Navigate to="/" />;
   }
@@ -120,7 +118,7 @@ const Auth = () => {
           <Card className="w-full shadow-lg">
             <CardHeader className="text-center">
               <CardTitle className="text-2xl font-bold">Create Account</CardTitle>
-              <CardDescription>Sign up to start connecting with your sweetheart</CardDescription>
+              <CardDescription>Sign up to start planning your life journey</CardDescription>
             </CardHeader>
             <form onSubmit={handleSignUp}>
               <CardContent className="space-y-4 pt-6">
