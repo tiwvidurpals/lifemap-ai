@@ -7,11 +7,11 @@ import { Heart } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
 interface AuthFormProps {
-  onLogin: (username: string, password: string) => void;
+  onLogin: (email: string, password: string) => void;
 }
 
 const AuthForm = ({ onLogin }: AuthFormProps) => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -19,10 +19,10 @@ const AuthForm = ({ onLogin }: AuthFormProps) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username.trim() || !password.trim()) {
+    if (!email.trim() || !password.trim()) {
       toast({
         title: "Error",
-        description: "Please enter both username and password",
+        description: "Please enter both email and password",
         variant: "destructive",
       });
       return;
@@ -30,11 +30,9 @@ const AuthForm = ({ onLogin }: AuthFormProps) => {
     
     setIsLoading(true);
     
-    // Simulate login process
-    setTimeout(() => {
-      onLogin(username, password);
-      setIsLoading(false);
-    }, 1000);
+    // Call the parent component's login function
+    onLogin(email, password);
+    // Note: don't reset loading state here, parent component should handle that
   };
 
   return (
@@ -50,10 +48,10 @@ const AuthForm = ({ onLogin }: AuthFormProps) => {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="bg-secondary/50"
             />
           </div>

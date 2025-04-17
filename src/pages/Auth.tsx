@@ -7,12 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/components/ui/use-toast';
 
 const Auth = () => {
   const { user, loading, signIn, signUp } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
   // Redirect to home if already authenticated
   if (user && !loading) {
@@ -26,8 +28,13 @@ const Auth = () => {
     setIsLoading(true);
     try {
       await signIn(email, password);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Sign in error:', error);
+      toast({
+        title: "Sign in failed",
+        description: error.message || "Please check your email and password",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -40,8 +47,17 @@ const Auth = () => {
     setIsLoading(true);
     try {
       await signUp(email, password);
-    } catch (error) {
+      toast({
+        title: "Account created",
+        description: "Please check your email to confirm your account.",
+      });
+    } catch (error: any) {
       console.error('Sign up error:', error);
+      toast({
+        title: "Sign up failed",
+        description: error.message || "Please try again with a different email",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
