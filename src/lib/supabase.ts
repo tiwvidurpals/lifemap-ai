@@ -5,18 +5,22 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-// Verify that we have the required environment variables
+// Check for Supabase environment variables
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Missing Supabase environment variables. Please check your Supabase connection in the Lovable interface.');
-  // Provide fallback values to prevent the app from crashing during development
-  // In production with the Lovable Supabase integration, these values will be replaced
+  console.warn('Missing Supabase environment variables. Please connect your Lovable project to Supabase using the Supabase integration in the Lovable interface.');
 }
 
-// Create a single supabase client for the entire app
+// Initialize a mock Supabase client for development if no credentials are available
 export const supabase = createClient(
-  supabaseUrl || 'https://placeholder-url.supabase.co',  // Fallback value
-  supabaseAnonKey || 'placeholder-key'  // Fallback value
+  supabaseUrl || 'https://example.supabase.co',  // Changed from placeholder-url
+  supabaseAnonKey || 'example-key'  // Changed from placeholder-key
 );
+
+// Mock authentication functions to prevent errors when Supabase is not connected
+export const mockAuthResponse = {
+  data: { user: { id: 'mock-user-id', email: 'example@user.com', user_metadata: { full_name: 'Demo User', age: 30 } } },
+  error: null
+};
 
 export type UserMetadata = {
   full_name?: string;
@@ -31,6 +35,16 @@ export type AuthUser = {
 
 export async function getCurrentUser(): Promise<AuthUser | null> {
   try {
+    // If Supabase is not properly configured, return a mock user for development
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.warn('Using mock user data since Supabase is not configured');
+      return {
+        id: 'mock-user-id',
+        email: 'example@user.com',
+        metadata: { full_name: 'Demo User', age: 30 }
+      };
+    }
+    
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
     
@@ -41,6 +55,16 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     };
   } catch (error) {
     console.error('Error getting current user:', error);
+    
+    // If there's an error with Supabase connection, provide a mock user for development
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return {
+        id: 'mock-user-id',
+        email: 'example@user.com',
+        metadata: { full_name: 'Demo User', age: 30 }
+      };
+    }
+    
     return null;
   }
 }
