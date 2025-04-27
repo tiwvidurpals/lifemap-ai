@@ -11,11 +11,21 @@ import { LucideIcon } from "lucide-react";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => void;
+  onSignUp?: (email: string, password: string) => void;
   onSocialLogin: (provider: "google" | "facebook" | "github" | "apple" | "linkedin_oidc") => void;
   isLoading?: boolean;
+  mode?: 'login' | 'signup';
+  onToggleMode?: () => void;
 }
 
-const AuthForm = ({ onLogin, onSocialLogin, isLoading }: AuthFormProps) => {
+const AuthForm = ({ 
+  onLogin, 
+  onSignUp, 
+  onSocialLogin, 
+  isLoading,
+  mode = 'login',
+  onToggleMode
+}: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showVerification, setShowVerification] = useState(false);
@@ -23,7 +33,11 @@ const AuthForm = ({ onLogin, onSocialLogin, isLoading }: AuthFormProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin(email, password);
+    if (mode === 'login') {
+      onLogin(email, password);
+    } else if (mode === 'signup' && onSignUp) {
+      onSignUp(email, password);
+    }
   };
 
   // Social login is now enabled
@@ -69,7 +83,9 @@ const AuthForm = ({ onLogin, onSocialLogin, isLoading }: AuthFormProps) => {
           <Mail className="w-6 h-6 text-primary" />
         </div>
         <CardTitle className="text-2xl font-bold">Welcome to LifeMap</CardTitle>
-        <CardDescription>Sign in to start planning your journey</CardDescription>
+        <CardDescription>
+          {mode === 'login' ? 'Sign in to start planning your journey' : 'Create an account to start your journey'}
+        </CardDescription>
       </CardHeader>
       
       <CardContent>
@@ -125,9 +141,19 @@ const AuthForm = ({ onLogin, onSocialLogin, isLoading }: AuthFormProps) => {
             className="w-full hover:scale-[1.02] transition-transform"
             disabled={isLoading}
           >
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading 
+              ? (mode === 'login' ? "Signing in..." : "Signing up...") 
+              : (mode === 'login' ? "Sign In" : "Sign Up")}
           </Button>
         </form>
+        
+        {onToggleMode && (
+          <div className="mt-4 text-center">
+            <Button variant="link" onClick={onToggleMode} disabled={isLoading}>
+              {mode === 'login' ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+            </Button>
+          </div>
+        )}
         
         <div className="relative my-6">
           <div className="absolute inset-0 flex items-center">

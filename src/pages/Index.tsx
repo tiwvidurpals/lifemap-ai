@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import WeeklyTimeline from "@/components/WeeklyTimeline";
@@ -31,8 +30,8 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />
-      <main className="flex-1 p-4 md:p-6 w-full h-[calc(100vh-4rem)] md:h-screen overflow-y-auto">
-        <div className="max-w-6xl mx-auto">
+      <main className="flex-1 w-full h-[calc(100vh-4rem)] md:h-screen overflow-hidden flex flex-col pt-14 md:pt-0">
+        <div className="flex-1 overflow-y-auto">
           {renderPage()}
         </div>
       </main>

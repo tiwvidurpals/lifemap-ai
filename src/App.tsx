@@ -36,6 +36,11 @@ const AuthCallback = () => {
   return <Navigate to="/" />;
 };
 
+// Simple redirect to signup mode
+const SignUpRedirect = () => {
+  return <Navigate to="/auth?mode=signup" />;
+};
+
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -46,6 +51,7 @@ const App = () => {
             <Sonner />
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/signup" element={<SignUpRedirect />} />
               <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/" element={
                 <ProtectedRoute>

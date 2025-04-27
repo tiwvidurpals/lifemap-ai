@@ -1,12 +1,38 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { PlusCircle, Edit2, Trash2, Check, X } from "lucide-react";
+import { PlusCircle, Edit2, Trash2, Check, X, GripVertical, AlertCircle } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface LifeGoal {
   id: string;
@@ -15,6 +41,63 @@ interface LifeGoal {
   category: string;
   actions: string[];
 }
+
+interface SortableCategoryProps {
+  id: string;
+  isActive: boolean;
+  onClick: () => void;
+  onRemove: () => void;
+  hasGoals: boolean;
+}
+
+const SortableCategory = ({ id, isActive, onClick, onRemove, hasGoals }: SortableCategoryProps) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+  };
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`flex items-center ${isDragging ? 'opacity-50' : ''}`}
+    >
+      <div className="flex items-center">
+        <Button
+          variant={isActive ? "default" : "outline"}
+          onClick={onClick}
+          size="sm"
+          className="relative pr-8 group"
+        >
+          <span>{id}</span>
+          {hasGoals ? null : (
+            <span 
+              className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity" 
+              onClick={(e) => {
+                e.stopPropagation();
+                onRemove();
+              }}
+            >
+              <X size={14} className="text-destructive hover:text-destructive/80" />
+            </span>
+          )}
+        </Button>
+        <div
+          {...attributes}
+          {...listeners}
+          className="px-1 py-2 cursor-grab text-muted-foreground hover:text-foreground"
+        >
+          <GripVertical size={14} />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const LifeGoals = () => {
   const [goals, setGoals] = useState<LifeGoal[]>([]);
@@ -26,6 +109,7 @@ const LifeGoals = () => {
   const [editingGoalId, setEditingGoalId] = useState<string | null>(null);
   const [newCategory, setNewCategory] = useState("");
   const [showCategoryInput, setShowCategoryInput] = useState(false);
+  const [categoryToRemove, setCategoryToRemove] = useState<string | null>(null);
   const [newGoal, setNewGoal] = useState<Omit<LifeGoal, "id">>({
     title: "",
     description: "",
@@ -33,6 +117,14 @@ const LifeGoals = () => {
     actions: [""]
   });
   const { toast } = useToast();
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Load goals from localStorage
   useEffect(() => {
@@ -179,6 +271,39 @@ const LifeGoals = () => {
     setShowCategoryInput(false);
   };
 
+  const confirmRemoveCategory = (category: string) => {
+    // Check if category has any goals
+    const hasGoals = goals.some(goal => goal.category === category);
+    
+    if (hasGoals) {
+      toast({
+        title: "Cannot remove category",
+        description: "This category contains goals. Please move or delete them first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setCategoryToRemove(category);
+  };
+
+  const removeCategory = () => {
+    if (!categoryToRemove) return;
+    
+    setCategories(categories.filter(c => c !== categoryToRemove));
+    
+    if (activeCategory === categoryToRemove) {
+      setActiveCategory("All");
+    }
+    
+    toast({
+      title: "Category removed",
+      description: `Category "${categoryToRemove}" has been removed`
+    });
+    
+    setCategoryToRemove(null);
+  };
+
   const addActionField = () => {
     setNewGoal({
       ...newGoal,
@@ -204,6 +329,24 @@ const LifeGoals = () => {
     });
   };
 
+  // Handle the drag end event
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      setCategories((items) => {
+        const oldIndex = items.indexOf(active.id.toString());
+        const newIndex = items.indexOf(over.id.toString());
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Check if a category has goals
+  const categoryHasGoals = (category: string) => {
+    return goals.some(goal => goal.category === category);
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="p-4 border-b">
@@ -212,7 +355,7 @@ const LifeGoals = () => {
       </div>
 
       <div className="p-4 border-b overflow-x-auto">
-        <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center mb-2">
           <Button
             variant={activeCategory === "All" ? "default" : "outline"}
             onClick={() => setActiveCategory("All")}
@@ -221,16 +364,27 @@ const LifeGoals = () => {
             All
           </Button>
           
-          {categories.map(category => (
-            <Button
-              key={category}
-              variant={activeCategory === category ? "default" : "outline"}
-              onClick={() => setActiveCategory(category)}
-              size="sm"
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={categories}
+              strategy={horizontalListSortingStrategy}
             >
-              {category}
-            </Button>
-          ))}
+              {categories.map(category => (
+                <SortableCategory
+                  key={category}
+                  id={category}
+                  isActive={activeCategory === category}
+                  onClick={() => setActiveCategory(category)}
+                  onRemove={() => confirmRemoveCategory(category)}
+                  hasGoals={categoryHasGoals(category)}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
           
           {showCategoryInput ? (
             <div className="flex gap-1 items-center">
@@ -249,184 +403,217 @@ const LifeGoals = () => {
               </Button>
             </div>
           ) : (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setShowCategoryInput(true)}
-              className="flex items-center gap-1"
-            >
-              <PlusCircle size={14} />
+            <Button variant="outline" size="sm" onClick={() => setShowCategoryInput(true)} className="ml-1">
+              <PlusCircle size={16} className="mr-1" />
               Add Category
             </Button>
           )}
         </div>
+        <div className="text-xs text-muted-foreground">
+          <span className="flex items-center gap-1 mt-1">
+            <GripVertical size={14} /> 
+            <span>Drag categories to reorder. Hover to see remove option.</span>
+          </span>
+        </div>
       </div>
 
-      <div className="flex-1 p-4 overflow-auto">
-        <div className="mb-4 flex justify-between items-center">
-          <h2 className="text-xl font-semibold">
-            {activeCategory === "All" ? "All Life Goals" : `${activeCategory} Goals`}
-          </h2>
-          {!isEditing && (
-            <Button onClick={() => startEditing()} className="flex items-center gap-1">
-              <PlusCircle size={16} />
-              Add Goal
-            </Button>
-          )}
-        </div>
-
-        {isEditing ? (
-          <Card className="mb-4">
-            <CardHeader className="pb-2">
-              <CardTitle>{editingGoalId ? "Edit Goal" : "New Goal"}</CardTitle>
+      {isEditing ? (
+        <div className="p-4 border-b bg-muted/20">
+          <Card>
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-lg">
+                  {editingGoalId ? "Edit Goal" : "Create New Goal"}
+                </CardTitle>
+                <div className="flex gap-1">
+                  <Button size="sm" variant="ghost" onClick={cancelEditing} className="h-8">
+                    <X size={16} className="mr-1" />
+                    Cancel
+                  </Button>
+                  <Button size="sm" onClick={saveGoal} className="h-8">
+                    <Check size={16} className="mr-1" />
+                    Save
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="goal-title">Goal Title</Label>
-                <Input
-                  id="goal-title"
-                  placeholder="What's your ultimate goal?"
+                <Label htmlFor="title">Goal Title</Label>
+                <Input 
+                  id="title"
                   value={newGoal.title}
                   onChange={(e) => setNewGoal({...newGoal, title: e.target.value})}
+                  placeholder="What do you want to achieve?"
                 />
               </div>
-
+              
               <div className="space-y-2">
-                <Label htmlFor="goal-desc">Description</Label>
-                <Textarea
-                  id="goal-desc"
-                  placeholder="Why is this goal important to you?"
-                  value={newGoal.description}
-                  onChange={(e) => setNewGoal({...newGoal, description: e.target.value})}
-                  className="resize-none h-20"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="goal-category">Category</Label>
-                <select
-                  id="goal-category"
+                <Label htmlFor="category">Category</Label>
+                <select 
+                  id="category"
                   value={newGoal.category}
                   onChange={(e) => setNewGoal({...newGoal, category: e.target.value})}
-                  className="w-full h-10 px-3 py-2 bg-background border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 py-2"
                 >
                   {categories.map(category => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
+                    <option key={category} value={category}>{category}</option>
                   ))}
                 </select>
               </div>
-
+              
               <div className="space-y-2">
-                <Label>Actions You Can Take Now</Label>
-                {newGoal.actions.map((action, index) => (
-                  <div key={index} className="flex gap-2 items-center">
-                    <Input
-                      placeholder={`Action step ${index + 1}`}
-                      value={action}
-                      onChange={(e) => updateAction(index, e.target.value)}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeAction(index)}
-                      disabled={newGoal.actions.length <= 1}
-                      className="h-10 w-10 flex-shrink-0"
-                    >
-                      <X size={16} />
-                    </Button>
-                  </div>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={addActionField}
-                  className="flex items-center gap-1"
-                >
-                  <PlusCircle size={16} />
-                  Add Another Action
-                </Button>
+                <Label htmlFor="description">Description</Label>
+                <Textarea 
+                  id="description"
+                  value={newGoal.description}
+                  onChange={(e) => setNewGoal({...newGoal, description: e.target.value})}
+                  placeholder="Describe your goal in detail..."
+                  className="min-h-[100px]"
+                />
               </div>
-
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={cancelEditing}>
-                  Cancel
-                </Button>
-                <Button onClick={saveGoal} className="flex items-center gap-1">
-                  <Check size={16} />
-                  {editingGoalId ? "Update Goal" : "Save Goal"}
-                </Button>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Action Steps</Label>
+                  <Button variant="ghost" size="sm" onClick={addActionField} className="h-8">
+                    <PlusCircle size={14} className="mr-1" />
+                    Add Step
+                  </Button>
+                </div>
+                
+                <div className="space-y-2">
+                  {newGoal.actions.map((action, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <Input
+                        value={action}
+                        onChange={(e) => updateAction(index, e.target.value)}
+                        placeholder={`Step ${index + 1}`}
+                        className="flex-1"
+                      />
+                      {newGoal.actions.length > 1 && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeAction(index)}
+                          className="h-10 w-10 text-destructive hover:text-destructive/80"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </CardContent>
           </Card>
-        ) : null}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {filteredGoals.length > 0 ? (
-            filteredGoals.map(goal => (
-              <Card key={goal.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>{goal.title}</CardTitle>
-                      <div className="mt-1 inline-block bg-secondary text-secondary-foreground px-2 py-1 rounded-full text-xs">
-                        {goal.category}
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => startEditing(goal)}
-                        className="h-8 w-8"
-                      >
-                        <Edit2 size={16} />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => deleteGoal(goal.id)}
-                        className="h-8 w-8 text-destructive"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                    </div>
-                  </div>
-                  {goal.description && (
-                    <p className="text-sm text-muted-foreground mt-2">{goal.description}</p>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  {goal.actions.length > 0 ? (
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium">Actions you can take now:</h3>
-                      <ul className="list-disc pl-5 space-y-1">
-                        {goal.actions.map((action, index) => (
-                          <li key={index} className="text-sm">{action}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">No immediate actions defined</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full flex flex-col items-center justify-center p-8 text-center">
-              <p className="text-muted-foreground">
-                {activeCategory === "All" 
-                  ? "You don't have any life goals yet. Add your first goal to get started!" 
-                  : `You don't have any goals in the "${activeCategory}" category yet.`}
-              </p>
-              <Button onClick={() => startEditing()} variant="outline" className="mt-4">
-                Add Your First Goal
-              </Button>
-            </div>
-          )}
         </div>
+      ) : (
+        <div className="p-4 flex justify-end">
+          <Button onClick={() => startEditing()} className="flex items-center gap-1">
+            <PlusCircle size={16} />
+            New Goal
+          </Button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4 overflow-auto">
+        {filteredGoals.length > 0 ? (
+          filteredGoals.map(goal => (
+            <Card key={goal.id}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="text-base">{goal.title}</CardTitle>
+                    <div className="text-xs text-muted-foreground mt-1">{goal.category}</div>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => startEditing(goal)} 
+                      className="h-8 w-8"
+                    >
+                      <Edit2 size={14} />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={() => deleteGoal(goal.id)} 
+                      className="h-8 w-8 text-destructive hover:text-destructive/80"
+                    >
+                      <Trash2 size={14} />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {goal.description && (
+                  <p className="text-sm text-muted-foreground mb-4">{goal.description}</p>
+                )}
+                
+                {goal.actions.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Action Steps:</h4>
+                    <ul className="space-y-1 pl-5 list-disc text-sm marker:text-primary">
+                      {goal.actions.map((action, index) => (
+                        <li key={index}>{action}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="col-span-full flex flex-col items-center justify-center p-8 text-center">
+            {activeCategory === "All" ? (
+              <>
+                <div className="bg-muted rounded-full p-3 mb-4">
+                  <PlusCircle size={24} className="text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium mb-1">No goals yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Start defining your life goals to track your journey
+                </p>
+                <Button onClick={() => startEditing()}>Create Your First Goal</Button>
+              </>
+            ) : (
+              <>
+                <div className="bg-muted rounded-full p-3 mb-4">
+                  <AlertCircle size={24} className="text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium mb-1">No goals in this category</h3>
+                <p className="text-muted-foreground mb-4">
+                  Add goals to the "{activeCategory}" category or select a different one
+                </p>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setActiveCategory("All")}>
+                    View All Goals
+                  </Button>
+                  <Button onClick={() => startEditing()}>Add Goal to {activeCategory}</Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
       </div>
+
+      <AlertDialog open={categoryToRemove !== null} onOpenChange={(open) => !open && setCategoryToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Category</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove the "{categoryToRemove}" category? 
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={removeCategory}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

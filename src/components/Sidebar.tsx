@@ -1,4 +1,3 @@
-
 import { CalendarDays, ClipboardList, FileText, Target, RefreshCw, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -44,7 +43,8 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
           variant="outline" 
           size="icon" 
           onClick={() => setIsSidebarOpen(true)}
-          className="fixed top-4 left-4 z-30 md:hidden"
+          className="fixed top-4 left-4 z-50 md:hidden"
+          aria-label="Menu"
         >
           <Menu size={20} />
         </Button>
@@ -58,7 +58,7 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
         />
         
         <div className={cn(
-          "fixed top-0 left-0 z-50 h-full w-64 bg-card border-r shadow-lg transition-transform duration-300 flex flex-col",
+          "fixed top-0 left-0 z-50 h-full w-72 bg-card border-r shadow-lg transition-transform duration-300 flex flex-col",
           isSidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <div className="p-4 border-b flex items-center justify-between">
@@ -67,12 +67,13 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
               variant="ghost" 
               size="icon" 
               onClick={() => setIsSidebarOpen(false)}
+              aria-label="Close menu"
             >
               <X size={20} />
             </Button>
           </div>
           
-          <div className="flex flex-col gap-1 p-2 flex-1">
+          <div className="flex flex-col gap-1 p-2 flex-1 overflow-y-auto">
             {sidebarItems.map((item) => (
               <Button
                 key={item.id}
@@ -95,7 +96,7 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
   // Desktop sidebar
   return (
     <div className={cn(
-      "h-full bg-card border-r transition-all duration-300 flex flex-col",
+      "h-full bg-card border-r transition-all duration-300 flex flex-col shrink-0",
       isCollapsed ? "w-16" : "w-64"
     )}>
       <div className="p-4 border-b flex items-center justify-between">
@@ -105,12 +106,13 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
           size="icon" 
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="ml-auto"
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? <Menu size={20} /> : <X size={20} />}
         </Button>
       </div>
       
-      <div className="flex flex-col gap-1 p-2 flex-1">
+      <div className="flex flex-col gap-1 p-2 flex-1 overflow-y-auto">
         {sidebarItems.map((item) => (
           <Button
             key={item.id}
