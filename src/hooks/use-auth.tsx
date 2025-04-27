@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { supabase, AuthUser, getCurrentUser, mockAuthResponse } from '@/lib/supabase';
+import { supabase, AuthUser, getCurrentUser, UserMetadata } from '@/lib/supabase';
 import { useToast } from '@/components/ui/use-toast';
 
 interface AuthContextType {
