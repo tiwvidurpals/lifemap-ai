@@ -1,12 +1,13 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Github, Facebook, Mail, Apple, Linkedin } from "lucide-react";
+import { Github, Facebook, Mail, Apple, Linkedin, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { LucideIcon } from "lucide-react";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => void;
@@ -25,25 +26,40 @@ const AuthForm = ({ onLogin, onSocialLogin, isLoading }: AuthFormProps) => {
     onLogin(email, password);
   };
 
+  // Social login is now enabled
+  const socialLoginDisabled = false;
+  const socialLoginTooltip = "Social login is currently being configured. Please use email/password instead.";
+
   const SocialButton = ({ provider, icon: Icon, label, className }: { 
     provider: "google" | "facebook" | "github" | "apple" | "linkedin_oidc", 
-    icon: any, 
+    icon: LucideIcon | (() => JSX.Element), 
     label: string,
     className?: string 
   }) => (
-    <Button 
-      type="button" 
-      variant="outline" 
-      onClick={() => onSocialLogin(provider)}
-      disabled={isLoading}
-      className={cn(
-        "w-full flex items-center justify-center gap-2 hover:scale-[1.02] transition-all",
-        className
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => onSocialLogin(provider)}
+          disabled={isLoading || socialLoginDisabled}
+          className={cn(
+            "w-full flex items-center justify-center gap-2 hover:scale-[1.02] transition-all",
+            socialLoginDisabled && "opacity-50 cursor-not-allowed",
+            className
+          )}
+        >
+          <Icon className="w-5 h-5" />
+          <span>{label}</span>
+          {socialLoginDisabled && <AlertTriangle className="w-4 h-4 ml-2 text-yellow-500" />}
+        </Button>
+      </TooltipTrigger>
+      {socialLoginDisabled && (
+        <TooltipContent>
+          <p>{socialLoginTooltip}</p>
+        </TooltipContent>
       )}
-    >
-      <Icon className="w-5 h-5" />
-      <span>{label}</span>
-    </Button>
+    </Tooltip>
   );
 
   return (

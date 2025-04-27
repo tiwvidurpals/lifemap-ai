@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -26,6 +25,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Auth callback component to handle redirects from OAuth providers
+const AuthCallback = () => {
+  const { loading } = useAuth();
+  
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Processing login...</div>;
+  }
+  
+  return <Navigate to="/" />;
+};
+
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -36,6 +46,7 @@ const App = () => {
             <Sonner />
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <Index />
