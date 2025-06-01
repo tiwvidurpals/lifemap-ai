@@ -66,11 +66,15 @@ const Auth = () => {
     }
   };
 
-  const handleSignUp = async (email: string, password: string) => {
+  const handleSignUp = async (
+    email: string, 
+    password: string, 
+    metadata?: { fullName?: string; purpose?: string; age?: string }
+  ) => {
     setIsLoading(true);
     setError(null);
     try {
-      await signUp(email, password);
+      await signUp(email, password, metadata);
       toast({
         title: "Account created!",
         description: "Please check your email to verify your account.",

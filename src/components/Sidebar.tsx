@@ -22,6 +22,7 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
   const sidebarItems = [
     { id: "weekly", label: "Weekly Timeline", icon: CalendarDays },
     { id: "notes", label: "Notes", icon: FileText },
+    { id: "month-plan", label: "1 Month Plan", icon: Target },
     { id: "year-plan", label: "1 Year Plan", icon: Target },
     { id: "long-term", label: "Multi-Year Plan", icon: RefreshCw },
     { id: "life-goals", label: "Life Goals", icon: ClipboardList },

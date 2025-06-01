@@ -5,6 +5,14 @@ import Notes from "@/components/Notes";
 import YearPlan from "@/components/YearPlan";
 import MultiYearPlan from "@/components/MultiYearPlan";
 import LifeGoals from "@/components/LifeGoals";
+import MonthPlan from "@/components/MonthPlan";
+
+const MonthPlanPlaceholder = () => (
+  <div className="p-8 text-center text-muted-foreground">
+    <h2 className="text-2xl font-bold mb-2">1 Month Plan</h2>
+    <p>This feature is coming soon!</p>
+  </div>
+);
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState("weekly");
@@ -16,6 +24,8 @@ const Index = () => {
         return <WeeklyTimeline />;
       case "notes":
         return <Notes />;
+      case "month-plan":
+        return <MonthPlan />;
       case "year-plan":
         return <YearPlan />;
       case "long-term":

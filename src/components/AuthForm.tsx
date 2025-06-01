@@ -11,7 +11,7 @@ import { LucideIcon } from "lucide-react";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => void;
-  onSignUp?: (email: string, password: string) => void;
+  onSignUp?: (email: string, password: string, metadata?: { fullName?: string; purpose?: string; age?: string }) => void;
   onSocialLogin: (provider: "google" | "facebook" | "github" | "apple" | "linkedin_oidc") => void;
   isLoading?: boolean;
   mode?: 'login' | 'signup';
@@ -28,6 +28,9 @@ const AuthForm = ({
 }: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [age, setAge] = useState("");
   const [showVerification, setShowVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
 
@@ -36,7 +39,7 @@ const AuthForm = ({
     if (mode === 'login') {
       onLogin(email, password);
     } else if (mode === 'signup' && onSignUp) {
-      onSignUp(email, password);
+      onSignUp(email, password, { fullName, purpose, age });
     }
   };
 
@@ -90,6 +93,48 @@ const AuthForm = ({
       
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {mode === 'signup' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  type="text"
+                  placeholder="Your full name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="purpose">Purpose</Label>
+                <Input
+                  id="purpose"
+                  type="text"
+                  placeholder="Why are you joining?"
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="age">Age</Label>
+                <Input
+                  id="age"
+                  type="number"
+                  min="1"
+                  max="120"
+                  placeholder="Your age"
+                  value={age}
+                  onChange={(e) => setAge(e.target.value)}
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+            </>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
