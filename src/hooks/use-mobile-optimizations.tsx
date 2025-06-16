@@ -17,7 +17,8 @@ export function useMobileOptimizations() {
       
       // Prevent default touch behaviors that might interfere with the app
       document.addEventListener('touchmove', (e) => {
-        if (e.scale !== 1) {
+        // Check if this is a multi-touch gesture (pinch to zoom)
+        if (e.touches.length > 1) {
           e.preventDefault();
         }
       }, { passive: false });
