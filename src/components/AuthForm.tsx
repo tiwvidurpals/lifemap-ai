@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,9 +44,9 @@ const AuthForm = ({
     }
   };
 
-  // Social login is now enabled
-  const socialLoginDisabled = false;
-  const socialLoginTooltip = "Social login is currently being configured. Please use email/password instead.";
+  // Social login providers are not configured - show warning
+  const socialLoginDisabled = true;
+  const socialLoginTooltip = "Social providers need to be configured in Supabase dashboard first.";
 
   const SocialButton = ({ provider, icon: Icon, label, className }: { 
     provider: "google" | "facebook" | "github" | "apple" | "linkedin_oidc", 
@@ -53,30 +54,32 @@ const AuthForm = ({
     label: string,
     className?: string 
   }) => (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => onSocialLogin(provider)}
-          disabled={isLoading || socialLoginDisabled}
-          className={cn(
-            "w-full flex items-center justify-center gap-2 hover:scale-[1.02] transition-all",
-            socialLoginDisabled && "opacity-50 cursor-not-allowed",
-            className
-          )}
-        >
-          <Icon className="w-5 h-5" />
-          <span>{label}</span>
-          {socialLoginDisabled && <AlertTriangle className="w-4 h-4 ml-2 text-yellow-500" />}
-        </Button>
-      </TooltipTrigger>
-      {socialLoginDisabled && (
-        <TooltipContent>
-          <p>{socialLoginTooltip}</p>
-        </TooltipContent>
-      )}
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => onSocialLogin(provider)}
+            disabled={isLoading || socialLoginDisabled}
+            className={cn(
+              "w-full flex items-center justify-center gap-2 hover:scale-[1.02] transition-all",
+              socialLoginDisabled && "opacity-50 cursor-not-allowed",
+              className
+            )}
+          >
+            <Icon className="w-5 h-5" />
+            <span>{label}</span>
+            {socialLoginDisabled && <AlertTriangle className="w-4 h-4 ml-2 text-yellow-500" />}
+          </Button>
+        </TooltipTrigger>
+        {socialLoginDisabled && (
+          <TooltipContent>
+            <p>{socialLoginTooltip}</p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
   );
 
   return (
@@ -257,6 +260,11 @@ const AuthForm = ({
       
       <CardFooter className="text-center text-sm text-muted-foreground block">
         <p>Your personal roadmap to achieving life goals</p>
+        {socialLoginDisabled && (
+          <p className="mt-2 text-yellow-600 text-xs">
+            💡 Configure social providers in Supabase to enable social login
+          </p>
+        )}
       </CardFooter>
     </Card>
   );
