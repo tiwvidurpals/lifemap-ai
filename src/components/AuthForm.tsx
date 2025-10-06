@@ -1,31 +1,46 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { Github, Facebook, Mail, Apple, Linkedin, AlertTriangle } from "lucide-react";
+import { AlertTriangle, Shield, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { LucideIcon } from "lucide-react";
+import { sendVerificationEmail, validateVerificationCode, clearVerificationCode, sendPasswordResetEmail } from "@/services/verification-service";
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => void;
   onSignUp?: (email: string, password: string, metadata?: { fullName?: string; purpose?: string; age?: string }) => void;
   onSocialLogin: (provider: "google" | "facebook" | "github" | "apple" | "linkedin_oidc") => void;
+  onSendVerificationEmail?: (email: string) => Promise<void>;
   isLoading?: boolean;
   mode?: 'login' | 'signup';
   onToggleMode?: () => void;
+  resetSignal?: number;
+  failedAttempts?: number;
+  isBlocked?: boolean;
+  isEmailVerificationRequired?: boolean;
+  remainingAttempts?: number;
+  remainingBlockTime?: number;
 }
 
 const AuthForm = ({ 
   onLogin, 
   onSignUp, 
-  onSocialLogin, 
+  onSocialLogin,
+  onSendVerificationEmail,
   isLoading,
   mode = 'login',
-  onToggleMode
+  onToggleMode,
+  resetSignal = 0,
+  failedAttempts = 0,
+  isBlocked = false,
+  isEmailVerificationRequired = false,
+  remainingAttempts = 5,
+  remainingBlockTime = 0
 }: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,9 +49,39 @@ const AuthForm = ({
   const [age, setAge] = useState("");
   const [showVerification, setShowVerification] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [verificationStep, setVerificationStep] = useState<'code' | 'reset'>('code');
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+
+  // Clear inputs when resetSignal changes (e.g., after logout)
+  useEffect(() => {
+    setEmail("");
+    setPassword("");
+    setFullName("");
+    setPurpose("");
+    setAge("");
+    setShowVerification(false);
+    setVerificationCode("");
+    setVerificationStep('code');
+    setNewPassword("");
+    setConfirmPassword("");
+    setIsSendingVerification(false);
+    setIsVerifyingCode(false);
+    setIsResettingPassword(false);
+    
+  }, [resetSignal]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check if blocked due to brute force protection
+    if (isBlocked && remainingBlockTime > 0) {
+      return;
+    }
+    
     if (mode === 'login') {
       onLogin(email, password);
     } else if (mode === 'signup' && onSignUp) {
@@ -44,9 +89,87 @@ const AuthForm = ({
     }
   };
 
-  // Social login providers are not configured - show warning
-  const socialLoginDisabled = true;
-  const socialLoginTooltip = "Social providers need to be configured in Supabase dashboard first.";
+  const handleSendVerificationEmail = async () => {
+    if (!email) return;
+    
+    setIsSendingVerification(true);
+    try {
+      // Generate and send verification code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      await sendVerificationEmail(email, code);
+      setShowVerification(true);
+      setVerificationStep('code');
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+    } finally {
+      setIsSendingVerification(false);
+    }
+  };
+
+  const handleVerifyCode = async () => {
+    if (!verificationCode || verificationCode.length !== 6) return;
+    
+    setIsVerifyingCode(true);
+    try {
+      const isValid = validateVerificationCode(email, verificationCode);
+      
+      if (isValid) {
+        // Code is correct, show password reset option
+        setVerificationStep('reset');
+        clearVerificationCode();
+        // Code verified successfully
+      } else {
+        // Code is incorrect
+        setVerificationCode("");
+        // You could show an error message here
+        alert('Verification code is incorrect. Please try again.');
+      }
+    } catch (error) {
+      console.error('Failed to verify code:', error);
+      alert('Failed to verify code. Please try again.');
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPassword || newPassword !== confirmPassword) {
+      alert('Passwords do not match.');
+      return;
+    }
+    
+    if (newPassword.length < 6) {
+      alert('Password must be at least 6 characters long.');
+      return;
+    }
+    
+    setIsResettingPassword(true);
+    try {
+      await sendPasswordResetEmail(email);
+      alert('Password reset email sent. Please check your email and follow the link to reset your password.');
+      // Reset the form
+      setShowVerification(false);
+      setVerificationStep('code');
+      setNewPassword("");
+      setConfirmPassword("");
+      setVerificationCode("");
+    } catch (error) {
+      console.error('Failed to reset password:', error);
+      alert('Failed to send password reset email. Please try again.');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const formatTime = (ms: number) => {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Social login providers are now enabled
+  const socialLoginDisabled = false;
+  const socialLoginTooltip = "Sign in with your social account";
 
   const SocialButton = ({ provider, icon: Icon, label, className }: { 
     provider: "google" | "facebook" | "github" | "apple" | "linkedin_oidc", 
@@ -85,8 +208,8 @@ const AuthForm = ({
   return (
     <Card className="w-full max-w-md mx-auto shadow-lg animate-fade-in">
       <CardHeader className="text-center space-y-4">
-        <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-          <Mail className="w-6 h-6 text-primary" />
+        <div className="mx-auto w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+          <img src="/lifemap-logo.svg" alt="LifeMap logo" className="w-10 h-10 object-contain" />
         </div>
         <CardTitle className="text-2xl font-bold">Welcome to LifeMap</CardTitle>
         <CardDescription>
@@ -152,21 +275,76 @@ const AuthForm = ({
             />
           </div>
           
-          {showVerification ? (
-            <div className="space-y-2">
-              <Label htmlFor="verification">Verification Code</Label>
-              <InputOTP
-                value={verificationCode}
-                onChange={setVerificationCode}
-                maxLength={6}
-                render={({ slots }) => (
-                  <InputOTPGroup className="gap-2 justify-center">
-                    {slots.map((slot, idx) => (
-                      <InputOTPSlot key={idx} {...slot} index={idx} />
-                    ))}
-                  </InputOTPGroup>
-                )}
-              />
+          {showVerification && verificationStep === 'code' ? (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="verification">Enter verification code sent to {email}</Label>
+                <InputOTP
+                  value={verificationCode}
+                  onChange={setVerificationCode}
+                  maxLength={6}
+                  render={({ slots }) => (
+                    <InputOTPGroup className="gap-2 justify-center">
+                      {slots.map((slot, idx) => (
+                        <InputOTPSlot key={idx} {...slot} index={idx} />
+                      ))}
+                    </InputOTPGroup>
+                  )}
+                />
+              </div>
+              <Button
+                onClick={handleVerifyCode}
+                disabled={isVerifyingCode || verificationCode.length !== 6}
+                className="w-full"
+              >
+                {isVerifyingCode ? 'Verifying...' : 'Verify Code'}
+              </Button>
+            </div>
+          ) : showVerification && verificationStep === 'reset' ? (
+            <div className="space-y-4">
+              <div className="p-3 rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+                <div className="flex items-center gap-2 text-green-800 dark:text-green-200">
+                  <Shield className="w-4 h-4" />
+                  <span className="text-sm font-medium">Code verified successfully!</span>
+                </div>
+                <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                  You can now reset your password.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  required
+                  disabled={isResettingPassword}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  disabled={isResettingPassword}
+                />
+              </div>
+              
+              <Button
+                onClick={handleResetPassword}
+                disabled={isResettingPassword || !newPassword || !confirmPassword}
+                className="w-full"
+              >
+                {isResettingPassword ? 'Sending Reset Email...' : 'Reset Password'}
+              </Button>
             </div>
           ) : (
             <div className="space-y-2">
@@ -194,6 +372,47 @@ const AuthForm = ({
               : (mode === 'login' ? "Sign In" : "Sign Up")}
           </Button>
         </form>
+        
+        {/* Brute Force Protection Warnings */}
+        {mode === 'login' && failedAttempts > 0 && (
+          <div className="mt-4 p-3 rounded-lg border border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950">
+            <div className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm font-medium">
+                {isBlocked ? 'Account temporarily locked' : 'Multiple failed attempts detected'}
+              </span>
+            </div>
+            <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
+              {isBlocked ? (
+                <>Please wait {formatTime(remainingBlockTime)} before trying again.</>
+              ) : (
+                <>You have {remainingAttempts} attempts remaining before email verification is required.</>
+              )}
+            </p>
+          </div>
+        )}
+        
+        {/* Email Verification Required */}
+        {mode === 'login' && isEmailVerificationRequired && !showVerification && (
+          <div className="mt-4 p-4 rounded-lg border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+            <div className="flex items-center gap-2 text-red-800 dark:text-red-200 mb-2">
+              <Shield className="w-4 h-4" />
+              <span className="text-sm font-medium">Email verification required</span>
+            </div>
+            <p className="text-xs text-red-700 dark:text-red-300 mb-3">
+              For security reasons, please verify your email address before signing in.
+            </p>
+            <Button
+              onClick={handleSendVerificationEmail}
+              disabled={isSendingVerification || !email}
+              variant="outline"
+              size="sm"
+              className="w-full"
+            >
+              {isSendingVerification ? 'Sending...' : 'Send verification email'}
+            </Button>
+          </div>
+        )}
         
         {onToggleMode && (
           <div className="mt-4 text-center">
@@ -227,44 +446,11 @@ const AuthForm = ({
             )}
             label="Google"
           />
-          
-          <SocialButton 
-            provider="facebook"
-            icon={Facebook}
-            label="Facebook"
-            className="text-blue-600"
-          />
-          
-          <SocialButton 
-            provider="github"
-            icon={Github}
-            label="GitHub"
-            className="text-gray-900 dark:text-white"
-          />
-          
-          <SocialButton 
-            provider="apple"
-            icon={Apple}
-            label="Apple"
-            className="text-gray-900 dark:text-white"
-          />
-          
-          <SocialButton 
-            provider="linkedin_oidc"
-            icon={Linkedin}
-            label="LinkedIn"
-            className="text-[#0077b5]"
-          />
         </div>
       </CardContent>
       
       <CardFooter className="text-center text-sm text-muted-foreground block">
         <p>Your personal roadmap to achieving life goals</p>
-        {socialLoginDisabled && (
-          <p className="mt-2 text-yellow-600 text-xs">
-            💡 Configure social providers in Supabase to enable social login
-          </p>
-        )}
       </CardFooter>
     </Card>
   );

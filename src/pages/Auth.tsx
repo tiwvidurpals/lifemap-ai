@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/hooks/use-auth';
 import AuthForm from '@/components/AuthForm';
 import { useToast } from "@/components/ui/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { supabase } from '@/integrations/supabase/client';
+import { useBruteForceProtection } from '@/hooks/use-brute-force-protection';
 
 // Define error type
 interface AuthError {
@@ -21,6 +23,25 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const [resetSignal, setResetSignal] = useState(0);
+  
+  const {
+    failedAttempts,
+    isBlocked,
+    isEmailVerificationRequired,
+    remainingAttempts,
+    remainingBlockTime,
+    recordFailedAttempt,
+    recordSuccessfulAttempt,
+    clearAllProtection,
+  } = useBruteForceProtection();
+
+  // When user becomes logged out, signal the form to clear its fields
+  useEffect(() => {
+    if (!loading && !user) {
+      setResetSignal((v) => v + 1);
+    }
+  }, [user, loading]);
 
   if (user && !loading) {
     return <Navigate to="/" />;
@@ -40,6 +61,8 @@ const Auth = () => {
     setError(null);
     try {
       await signIn(email, password);
+      // Clear all protection on successful login
+      clearAllProtection();
       toast({
         title: "Welcome back!",
         description: "You've successfully signed in.",
@@ -54,6 +77,9 @@ const Auth = () => {
       } else if (errorMessage.includes("Email not confirmed")) {
         errorMessage = "Please check your email to verify your account before signing in.";
       }
+      
+      // Record failed attempt for brute force protection
+      recordFailedAttempt(email);
       
       setError(errorMessage);
       toast({
@@ -135,6 +161,22 @@ const Auth = () => {
     }
   };
 
+  const handleSendVerificationEmail = async (email: string) => {
+    const { error } = await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+    });
+    
+    if (error) {
+      throw new Error(`Failed to send verification email: ${error.message}`);
+    }
+    
+    toast({
+      title: "Verification email sent",
+      description: "Please check your email and click the verification link.",
+    });
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-b from-background to-secondary/20 p-4">
       {error && (
@@ -148,9 +190,16 @@ const Auth = () => {
         onLogin={handleSignIn}
         onSignUp={handleSignUp}
         onSocialLogin={handleSocialLogin}
+        onSendVerificationEmail={handleSendVerificationEmail}
         isLoading={isLoading}
         mode={mode}
         onToggleMode={toggleMode}
+        resetSignal={resetSignal}
+        failedAttempts={failedAttempts}
+        isBlocked={isBlocked}
+        isEmailVerificationRequired={isEmailVerificationRequired}
+        remainingAttempts={remainingAttempts}
+        remainingBlockTime={remainingBlockTime}
       />
     </div>
   );
