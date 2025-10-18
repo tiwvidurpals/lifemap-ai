@@ -5,24 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Search, Plus, Trash2, Tag, Save, X, Edit, PencilIcon } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
-
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface StoredNote {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: string;
-  updatedAt: string;
-}
+import { fetchNotes, createNote, updateNote, deleteNote, DataMigrationService } from "@/services";
+import { Note } from "@/types/database";
+import { DatabaseSetupChecker } from "./DatabaseSetupChecker";
 
 const Notes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -30,33 +15,91 @@ const Notes = () => {
   const [filteredNotes, setFilteredNotes] = useState<Note[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isEditing, setIsEditing] = useState<string | null>(null);
-  const [newNote, setNewNote] = useState<Omit<Note, "id" | "createdAt" | "updatedAt">>({
+  const [newNote, setNewNote] = useState<Omit<Note, "id" | "user_id" | "created_at" | "updated_at">>({
     title: "",
     content: "",
     tags: []
   });
   const [tagInput, setTagInput] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [migrating, setMigrating] = useState(false);
+  const [databaseError, setDatabaseError] = useState(false);
   const { toast } = useToast();
 
-  // Load notes from localStorage
+  // Load notes from database
   useEffect(() => {
-    const storedNotes = localStorage.getItem("notes");
-    if (storedNotes) {
-      const parsedNotes = JSON.parse(storedNotes).map((note: StoredNote) => ({
-        ...note,
-        createdAt: new Date(note.createdAt),
-        updatedAt: new Date(note.updatedAt)
-      }));
-      setNotes(parsedNotes);
-    }
+    loadNotes();
   }, []);
 
-  // Save notes to localStorage whenever notes change
-  useEffect(() => {
-    if (notes.length > 0) {
-      localStorage.setItem("notes", JSON.stringify(notes));
+  const loadNotes = async () => {
+    try {
+      setLoading(true);
+      setDatabaseError(false);
+      const data = await fetchNotes();
+      setNotes(data);
+    } catch (error) {
+      console.error('Failed to load notes:', error);
+      setDatabaseError(true);
+      toast({
+        title: "Database Error",
+        description: "Failed to connect to database. Please check your setup.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-  }, [notes]);
+  };
+
+  // Check for localStorage data and offer migration
+  useEffect(() => {
+    if (notes.length === 0 && DataMigrationService.hasLocalStorageData()) {
+      toast({
+        title: "Data Migration Available",
+        description: "We found existing data in your browser. Would you like to migrate it to the cloud?",
+        action: (
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleMigration}
+            disabled={migrating}
+          >
+            {migrating ? "Migrating..." : "Migrate Data"}
+          </Button>
+        ),
+        duration: 10000
+      });
+    }
+  }, [notes.length]);
+
+  const handleMigration = async () => {
+    try {
+      setMigrating(true);
+      const result = await DataMigrationService.migrateAllData();
+      
+      if (result.success) {
+        toast({
+          title: "Migration Successful",
+          description: `Migrated ${Object.values(result.migrated).reduce((a, b) => a + b, 0)} items to the cloud.`,
+        });
+        await DataMigrationService.clearLocalStorage();
+        await loadNotes(); // Reload notes after migration
+      } else {
+        toast({
+          title: "Migration Failed",
+          description: result.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Migration Error",
+        description: "Failed to migrate data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setMigrating(false);
+    }
+  };
 
   // Filter notes based on search query
   useEffect(() => {
@@ -75,7 +118,7 @@ const Notes = () => {
     setFilteredNotes(filtered);
   }, [searchQuery, notes]);
 
-  const createNote = () => {
+  const createNoteHandler = async () => {
     if (!newNote.title.trim()) {
       toast({
         title: "Title required",
@@ -85,29 +128,32 @@ const Notes = () => {
       return;
     }
 
-    const now = new Date();
-    const note: Note = {
-      id: `note-${Date.now()}`,
-      ...newNote,
-      createdAt: now,
-      updatedAt: now
-    };
-
-    setNotes([note, ...notes]);
-    
-    // Reset form
-    setNewNote({
-      title: "",
-      content: "",
-      tags: []
-    });
-    
-    setIsCreating(false);
-    
-    toast({
-      title: "Note created",
-      description: "Your new note has been created successfully"
-    });
+    try {
+      const createdNote = await createNote(newNote);
+      setNotes([createdNote, ...notes]);
+      
+      // Reset form
+      setNewNote({
+        title: "",
+        content: "",
+        tags: []
+      });
+      
+      setIsCreating(false);
+      
+      toast({
+        title: "Note created",
+        description: "Your new note has been created successfully"
+      });
+    } catch (error) {
+      console.error('Failed to create note:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to create note. Please try again.';
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    }
   };
 
   const startEditingNote = (note: Note) => {
@@ -120,7 +166,7 @@ const Notes = () => {
     setIsCreating(false);
   };
 
-  const updateNote = () => {
+  const updateNoteHandler = async () => {
     if (!isEditing) return;
     
     if (!newNote.title.trim()) {
@@ -132,27 +178,31 @@ const Notes = () => {
       return;
     }
 
-    const now = new Date();
-    const updatedNotes = notes.map(note => {
-      if (note.id === isEditing) {
-        return {
-          ...note,
-          title: newNote.title,
-          content: newNote.content,
-          tags: newNote.tags,
-          updatedAt: now
-        };
-      }
-      return note;
-    });
+    try {
+      const updatedNote = await updateNote(isEditing, {
+        title: newNote.title,
+        content: newNote.content,
+        tags: newNote.tags
+      });
 
-    setNotes(updatedNotes);
-    cancelEdit();
-    
-    toast({
-      title: "Note updated",
-      description: "Your note has been updated successfully"
-    });
+      setNotes(notes.map(note => 
+        note.id === isEditing ? updatedNote : note
+      ));
+      
+      cancelEdit();
+      
+      toast({
+        title: "Note updated",
+        description: "Your note has been updated successfully"
+      });
+    } catch (error) {
+      console.error('Failed to update note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update note. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const cancelEdit = () => {
@@ -164,13 +214,23 @@ const Notes = () => {
     });
   };
 
-  const deleteNote = (id: string) => {
-    setNotes(notes.filter(note => note.id !== id));
-    
-    toast({
-      title: "Note deleted",
-      description: "Your note has been deleted successfully"
-    });
+  const deleteNoteHandler = async (id: string) => {
+    try {
+      await deleteNote(id);
+      setNotes(notes.filter(note => note.id !== id));
+      
+      toast({
+        title: "Note deleted",
+        description: "Your note has been deleted successfully"
+      });
+    } catch (error) {
+      console.error('Failed to delete note:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete note. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const addTag = () => {
@@ -193,13 +253,32 @@ const Notes = () => {
     });
   };
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     });
   };
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading notes...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (databaseError) {
+    return (
+      <div className="h-full flex items-center justify-center p-4">
+        <DatabaseSetupChecker />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -284,7 +363,7 @@ const Notes = () => {
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
               <Button variant="ghost" onClick={() => setIsCreating(false)}>Cancel</Button>
-              <Button onClick={createNote} className="flex items-center gap-1">
+              <Button onClick={createNoteHandler} className="flex items-center gap-1">
                 <Save size={16} />
                 Save Note
               </Button>
@@ -346,7 +425,7 @@ const Notes = () => {
             </CardContent>
             <CardFooter className="flex justify-end gap-2">
               <Button variant="ghost" onClick={cancelEdit}>Cancel</Button>
-              <Button onClick={updateNote} className="flex items-center gap-1">
+              <Button onClick={updateNoteHandler} className="flex items-center gap-1">
                 <Save size={16} />
                 Update Note
               </Button>
@@ -362,7 +441,7 @@ const Notes = () => {
               <CardHeader className="pb-2">
                 <CardTitle>{note.title}</CardTitle>
                 <p className="text-xs text-muted-foreground">
-                  {formatDate(note.updatedAt)}
+                  {formatDate(note.updated_at || note.created_at || '')}
                 </p>
               </CardHeader>
               <CardContent className="flex-1">
@@ -390,7 +469,7 @@ const Notes = () => {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => deleteNote(note.id)}
+                  onClick={() => deleteNoteHandler(note.id)}
                   className="text-destructive hover:text-destructive"
                 >
                   <Trash2 size={14} />

@@ -15,6 +15,7 @@ export type Note = {
   user_id: string;
   title: string;
   content: string;
+  tags: string[];
   created_at?: string;
   updated_at?: string;
 };
@@ -47,4 +48,38 @@ export type LifeGoal = {
   category: string;
   actions: string[];
   created_at?: string;
+};
+
+export type WeeklyTimelineEntry = {
+  id: string;
+  user_id: string;
+  week_id: string;
+  start_date: string;
+  end_date: string;
+  title: string;
+  notes: string;
+  color: string;
+  created_at?: string;
+  updated_at?: string;
+};
+
+export type MonthGoal = {
+  id: string;
+  user_id: string;
+  month: string;
+  title: string;
+  description?: string;
+  actions: string[];
+  completed: boolean;
+  created_at?: string;
+};
+
+export type DailyCommitment = {
+  id: string;
+  user_id: string;
+  commitment_type: 'year' | 'month';
+  content: string;
+  last_signed?: string;
+  created_at?: string;
+  updated_at?: string;
 };

@@ -1,18 +1,19 @@
-# Welcome to your Lovable project
+# LifeMap AI
 
-## Project info
+A comprehensive life planning and goal management application built with React, TypeScript, and Supabase.
 
-**URL**: https://lovable.dev/projects/a10ce10c-330b-4970-abe6-0eada98fa75b
+## Features
 
-## How can I edit this code?
+- **Notes Management**: Create, edit, and organize notes with tags
+- **Life Goals**: Set and track long-term life goals by category
+- **Multi-Year Planning**: Plan goals for 2-5 year timeframes
+- **Year Planning**: Quarterly goal setting and tracking
+- **Month Planning**: Monthly goal management
+- **Weekly Timeline**: Weekly planning and reflection
+- **User Authentication**: Secure login with multiple providers
+- **Cloud Storage**: All data stored securely in Supabase
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/a10ce10c-330b-4970-abe6-0eada98fa75b) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
+## Quick Start
 
 **Use your preferred IDE**
 
@@ -32,42 +33,50 @@ cd <YOUR_PROJECT_NAME>
 # Step 3: Install the necessary dependencies.
 npm i
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Step 4: Set up Supabase (see SUPABASE_SETUP.md for detailed instructions)
+# Create a .env.local file with your Supabase credentials:
+# VITE_SUPABASE_URL=https://your-project-id.supabase.co
+# VITE_SUPABASE_ANON_KEY=your-anon-key-here
+
+# Step 5: Start the development server with auto-reloading and an instant preview.
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Database Setup
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+This application uses Supabase for data storage and authentication. **You must set up Supabase before the app will work properly.**
 
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for detailed setup instructions.
 
 ## What technologies are used for this project?
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Frontend**: Vite, TypeScript, React
+- **UI Components**: shadcn-ui, Tailwind CSS
+- **Backend**: Supabase (PostgreSQL, Auth, Real-time)
+- **State Management**: React hooks, TanStack Query
+- **Authentication**: Supabase Auth with OAuth providers
+- **Database**: PostgreSQL with Row Level Security
 
-## How can I deploy this project?
+## Data Migration
 
-Simply open [Lovable](https://lovable.dev/projects/a10ce10c-330b-4970-abe6-0eada98fa75b) and click on Share -> Publish.
+The app includes automatic data migration from localStorage to the cloud database. When users first log in, they'll be prompted to migrate any existing local data to their cloud account.
 
-## Can I connect a custom domain to my Lovable project?
+## Security
 
-Yes, you can!
+- All data is protected with Row Level Security (RLS)
+- User authentication required for all operations
+- Data is isolated per user
+- Secure API keys and environment variables
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## Deployment
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+The app is ready for deployment on platforms like Vercel, Netlify, or any static hosting service. Make sure to:
+
+1. Set up your Supabase project
+2. Configure environment variables
+3. Update authentication URLs for your domain
+4. Deploy your application
+
+See [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) for production deployment details.

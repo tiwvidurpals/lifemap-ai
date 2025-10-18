@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/use-auth";
 import { useMobileOptimizations } from "@/hooks/use-mobile-optimizations";
+import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
+import { ThemeProvider } from "@/hooks/use-theme";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
@@ -43,9 +45,10 @@ const SignUpRedirect = () => {
   return <Navigate to="/auth?mode=signup" />;
 };
 
-// Mobile optimization wrapper
+// Mobile optimization wrapper with inactivity logout
 const MobileOptimizedApp = ({ children }: { children: React.ReactNode }) => {
   useMobileOptimizations();
+  useInactivityLogout(); // Automatically log out after 6 hours of inactivity
   return <>{children}</>;
 };
 
@@ -53,25 +56,27 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <AuthProvider>
-          <MobileOptimizedApp>
-            <TooltipProvider>
-              <Toaster />
-              <Sonner />
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/signup" element={<SignUpRedirect />} />
-                <Route path="/auth/callback" element={<AuthCallback />} />
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <Index />
-                  </ProtectedRoute>
-                } />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </TooltipProvider>
-          </MobileOptimizedApp>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <MobileOptimizedApp>
+              <TooltipProvider>
+                <Toaster />
+                <Sonner />
+                <Routes>
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/signup" element={<SignUpRedirect />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
+                  <Route path="/" element={
+                    <ProtectedRoute>
+                      <Index />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </TooltipProvider>
+            </MobileOptimizedApp>
+          </AuthProvider>
+        </ThemeProvider>
       </BrowserRouter>
     </QueryClientProvider>
   );

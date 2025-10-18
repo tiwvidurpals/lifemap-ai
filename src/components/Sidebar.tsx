@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import UserProfile from "@/components/UserProfile";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 type SidebarProps = {
   currentPage: string;
@@ -88,7 +89,12 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
             ))}
           </div>
           
-          <UserProfile />
+          <div className="p-2 border-t space-y-2">
+            <div className="flex items-center justify-center">
+              <ThemeToggle />
+            </div>
+            <UserProfile />
+          </div>
         </div>
       </>
     );
@@ -130,7 +136,12 @@ const Sidebar = ({ currentPage, setCurrentPage }: SidebarProps) => {
         ))}
       </div>
       
-      {!isCollapsed && <UserProfile />}
+      <div className="p-2 border-t space-y-2">
+        <div className="flex items-center justify-center">
+          <ThemeToggle />
+        </div>
+        {!isCollapsed && <UserProfile />}
+      </div>
     </div>
   );
 };
