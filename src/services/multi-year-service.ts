@@ -13,7 +13,7 @@ export async function fetchLongTermGoals(): Promise<LongTermGoal[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as LongTermGoal[];
 }
 
 export async function createLongTermGoal(goal: Omit<LongTermGoal, 'id' | 'user_id' | 'created_at'>): Promise<LongTermGoal> {
@@ -27,7 +27,7 @@ export async function createLongTermGoal(goal: Omit<LongTermGoal, 'id' | 'user_i
     .single();
 
   if (error) throw error;
-  return data;
+  return data as LongTermGoal;
 }
 
 export async function updateLongTermGoal(id: string, goal: Partial<LongTermGoal>): Promise<LongTermGoal> {
@@ -43,7 +43,7 @@ export async function updateLongTermGoal(id: string, goal: Partial<LongTermGoal>
     .single();
 
   if (error) throw error;
-  return data;
+  return data as LongTermGoal;
 }
 
 export async function deleteLongTermGoal(id: string): Promise<void> {

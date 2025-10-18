@@ -77,9 +77,10 @@ const Notes = () => {
       const result = await DataMigrationService.migrateAllData();
       
       if (result.success) {
+        const totalMigrated = Object.values(result.migrated).reduce((a: number, b: number) => a + b, 0);
         toast({
           title: "Migration Successful",
-          description: `Migrated ${Object.values(result.migrated).reduce((a, b) => a + b, 0)} items to the cloud.`,
+          description: `Migrated ${totalMigrated} items to the cloud.`,
         });
         await DataMigrationService.clearLocalStorage();
         await loadNotes(); // Reload notes after migration

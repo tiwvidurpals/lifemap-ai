@@ -60,12 +60,7 @@ export async function sendVerificationEmail(email: string, code: string): Promis
       type: 'signup',
       email: email,
       options: {
-        emailRedirectTo: `${window.location.origin}/auth`,
-        data: {
-          verification_code: code,
-          custom_subject: emailTemplate.subject,
-          custom_message: emailTemplate.html
-        }
+        emailRedirectTo: `${window.location.origin}/auth`
       }
     });
     

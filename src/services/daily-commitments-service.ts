@@ -12,7 +12,7 @@ export async function fetchDailyCommitments(): Promise<DailyCommitment[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as DailyCommitment[];
 }
 
 export async function createDailyCommitment(commitment: Omit<DailyCommitment, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<DailyCommitment> {
@@ -26,7 +26,7 @@ export async function createDailyCommitment(commitment: Omit<DailyCommitment, 'i
     .single();
 
   if (error) throw error;
-  return data;
+  return data as DailyCommitment;
 }
 
 export async function updateDailyCommitment(id: string, commitment: Partial<DailyCommitment>): Promise<DailyCommitment> {
@@ -42,7 +42,7 @@ export async function updateDailyCommitment(id: string, commitment: Partial<Dail
     .single();
 
   if (error) throw error;
-  return data;
+  return data as DailyCommitment;
 }
 
 export async function deleteDailyCommitment(id: string): Promise<void> {
@@ -72,5 +72,5 @@ export async function upsertDailyCommitment(commitment: Omit<DailyCommitment, 'i
     .single();
 
   if (error) throw error;
-  return data;
+  return data as DailyCommitment;
 }

@@ -13,7 +13,7 @@ export async function fetchYearGoals(): Promise<YearGoal[]> {
     .order('created_at', { ascending: false });
 
   if (error) throw error;
-  return data || [];
+  return (data || []) as YearGoal[];
 }
 
 export async function createYearGoal(goal: Omit<YearGoal, 'id' | 'user_id' | 'created_at'>): Promise<YearGoal> {
@@ -27,7 +27,7 @@ export async function createYearGoal(goal: Omit<YearGoal, 'id' | 'user_id' | 'cr
     .single();
 
   if (error) throw error;
-  return data;
+  return data as YearGoal;
 }
 
 export async function updateYearGoal(id: string, goal: Partial<YearGoal>): Promise<YearGoal> {
@@ -43,7 +43,7 @@ export async function updateYearGoal(id: string, goal: Partial<YearGoal>): Promi
     .single();
 
   if (error) throw error;
-  return data;
+  return data as YearGoal;
 }
 
 export async function deleteYearGoal(id: string): Promise<void> {
