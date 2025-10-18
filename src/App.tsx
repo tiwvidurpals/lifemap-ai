@@ -10,6 +10,7 @@ import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import { ThemeProvider } from "@/hooks/use-theme";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,11 @@ const App = () => {
                   <Route path="/" element={
                     <ProtectedRoute>
                       <Index />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/profile" element={
+                    <ProtectedRoute>
+                      <Profile />
                     </ProtectedRoute>
                   } />
                   <Route path="*" element={<NotFound />} />
