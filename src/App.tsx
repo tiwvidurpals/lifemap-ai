@@ -11,6 +11,8 @@ import { ThemeProvider } from "@/hooks/use-theme";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
+import Preferences from "./pages/Preferences";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -75,6 +77,16 @@ const App = () => {
                   <Route path="/profile" element={
                     <ProtectedRoute>
                       <Profile />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/preferences" element={
+                    <ProtectedRoute>
+                      <Preferences />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/settings" element={
+                    <ProtectedRoute>
+                      <Settings />
                     </ProtectedRoute>
                   } />
                   <Route path="*" element={<NotFound />} />

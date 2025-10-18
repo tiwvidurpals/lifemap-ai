@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
-import { LogOut, User, Settings, ChevronDown } from "lucide-react";
+import { LogOut, User, Settings, ChevronDown, Palette, Cog } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -39,7 +39,7 @@ const UserProfile = () => {
   // Mobile layout - full width with better spacing
   if (isMobile) {
     return (
-      <div className="p-4 border-t bg-card/50">
+      <div className="p-4 border-t bg-card/50 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <div className="bg-primary text-primary-foreground w-10 h-10 rounded-full flex items-center justify-center shrink-0">
@@ -64,6 +64,37 @@ const UserProfile = () => {
           >
             <LogOut size={16} />
             {isLoggingOut && <span className="ml-2 text-xs">Signing out...</span>}
+          </Button>
+        </div>
+        
+        {/* Quick access buttons for mobile */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/profile")}
+            className="flex-1"
+          >
+            <User size={14} className="mr-2" />
+            Profile
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/preferences")}
+            className="flex-1"
+          >
+            <Palette size={14} className="mr-2" />
+            Preferences
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/settings")}
+            className="flex-1"
+          >
+            <Cog size={14} className="mr-2" />
+            Settings
           </Button>
         </div>
       </div>
@@ -98,8 +129,12 @@ const UserProfile = () => {
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate("/profile")}>
-            <Settings className="mr-2 h-4 w-4" />
+          <DropdownMenuItem onClick={() => navigate("/preferences")}>
+            <Palette className="mr-2 h-4 w-4" />
+            <span>Preferences</span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate("/settings")}>
+            <Cog className="mr-2 h-4 w-4" />
             <span>Settings</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />

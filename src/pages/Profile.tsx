@@ -1,405 +1,178 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Separator } from "@/components/ui/separator";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { User, Camera, Trash2, Key, Moon, Sun, Monitor } from "lucide-react";
-import { useTheme } from "@/hooks/use-theme";
-import { useNavigate } from "react-router-dom";
-
-interface Profile {
-  id: string;
-  user_id: string;
-  display_name: string | null;
-  avatar_url: string | null;
-  bio: string | null;
-}
+import React from 'react';
+import { ArrowLeft, User, Mail, Calendar, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/hooks/use-auth';
+import { useNavigate } from 'react-router-dom';
 
 const Profile = () => {
-  const { user, signOut } = useAuth();
-  const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [displayName, setDisplayName] = useState("");
-  const [bio, setBio] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
 
-  useEffect(() => {
-    if (user) {
-      loadProfile();
-    }
-  }, [user]);
-
-  const loadProfile = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user?.id)
-        .single();
-
-      if (error) throw error;
-
-      setProfile(data);
-      setDisplayName(data.display_name || "");
-      setBio(data.bio || "");
-    } catch (error: any) {
-      toast({
-        title: "Error loading profile",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleBack = () => {
+    navigate('/');
   };
 
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      setUploading(true);
-
-      if (!event.target.files || event.target.files.length === 0) {
-        return;
-      }
-
-      const file = event.target.files[0];
-      const fileExt = file.name.split(".").pop();
-      const filePath = `${user?.id}/avatar.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(filePath, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from("avatars")
-        .getPublicUrl(filePath);
-
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({ avatar_url: publicUrl })
-        .eq("user_id", user?.id);
-
-      if (updateError) throw updateError;
-
-      setProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
-      
-      toast({
-        title: "Avatar updated",
-        description: "Your profile picture has been updated successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error uploading avatar",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setUploading(false);
-    }
+  const getInitials = (email: string) => {
+    return email.split('@')[0].slice(0, 2).toUpperCase();
   };
-
-  const handleSaveProfile = async () => {
-    try {
-      setSaving(true);
-
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          display_name: displayName,
-          bio: bio,
-        })
-        .eq("user_id", user?.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Profile updated",
-        description: "Your profile has been saved successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error saving profile",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "Passwords don't match",
-        description: "Please ensure both passwords are the same.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      toast({
-        title: "Password too short",
-        description: "Password must be at least 6 characters.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) throw error;
-
-      setNewPassword("");
-      setConfirmPassword("");
-
-      toast({
-        title: "Password updated",
-        description: "Your password has been changed successfully.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error changing password",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    try {
-      await signOut();
-      navigate("/auth");
-      
-      toast({
-        title: "Account deletion requested",
-        description: "Please contact support to complete account deletion.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
 
   return (
-    <div className="container max-w-4xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Profile & Settings</h1>
-        <p className="text-muted-foreground">Manage your account settings and preferences</p>
+    <div className="min-h-screen bg-background">
+      {/* Header with back button */}
+      <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="flex items-center gap-4 p-4">
+          <Button variant="ghost" size="icon" onClick={handleBack}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold">Profile</h1>
+            <p className="text-muted-foreground">Manage your account information</p>
+          </div>
+        </div>
       </div>
 
-      <Tabs defaultValue="profile" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="profile">Profile</TabsTrigger>
-          <TabsTrigger value="preferences">Preferences</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="profile" className="space-y-6">
+      <div className="container mx-auto p-6 max-w-4xl">
+        <div className="grid gap-6">
+          {/* Profile Overview */}
           <Card>
             <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>Update your profile details and photo</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Profile Overview
+              </CardTitle>
+              <CardDescription>
+                Your account information and status
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center gap-6">
-                <Avatar className="h-24 w-24">
-                  <AvatarImage src={profile?.avatar_url || ""} />
-                  <AvatarFallback className="text-2xl">
-                    <User size={32} />
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={user?.user_metadata?.avatar_url} />
+                  <AvatarFallback className="text-lg">
+                    {user?.email ? getInitials(user.email) : 'U'}
                   </AvatarFallback>
                 </Avatar>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="avatar-upload" className="cursor-pointer">
-                    <Button variant="outline" size="sm" disabled={uploading} asChild>
-                      <span>
-                        <Camera className="mr-2 h-4 w-4" />
-                        {uploading ? "Uploading..." : "Change Avatar"}
-                      </span>
-                    </Button>
-                  </Label>
-                  <Input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleAvatarUpload}
-                  />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" value={user?.email || ""} disabled />
+                  <h3 className="text-xl font-semibold">
+                    {user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}
+                  </h3>
+                  <p className="text-muted-foreground">{user?.email}</p>
+                  <Badge variant="outline" className="w-fit">
+                    {user?.email_confirmed_at ? 'Verified' : 'Unverified'}
+                  </Badge>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="displayName">Display Name</Label>
-                  <Input
-                    id="displayName"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder="Enter your display name"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Bio</Label>
-                  <Textarea
-                    id="bio"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Tell us about yourself"
-                    rows={4}
-                  />
-                </div>
-
-                <Button onClick={handleSaveProfile} disabled={saving}>
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="preferences" className="space-y-6">
+          {/* Account Details */}
           <Card>
             <CardHeader>
-              <CardTitle>Appearance</CardTitle>
-              <CardDescription>Customize how LifeMap looks</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Account Details
+              </CardTitle>
+              <CardDescription>
+                Your account information and login details
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Theme</Label>
-                <div className="flex gap-2">
-                  <Button
-                    variant={theme === "light" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("light")}
-                  >
-                    <Sun className="mr-2 h-4 w-4" />
-                    Light
-                  </Button>
-                  <Button
-                    variant={theme === "dark" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("dark")}
-                  >
-                    <Moon className="mr-2 h-4 w-4" />
-                    Dark
-                  </Button>
-                  <Button
-                    variant={theme === "system" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setTheme("system")}
-                  >
-                    <Monitor className="mr-2 h-4 w-4" />
-                    System
-                  </Button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">Email</label>
+                  <p className="text-sm">{user?.email}</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">User ID</label>
+                  <p className="text-xs font-mono">{user?.id}</p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">Provider</label>
+                  <p className="text-sm capitalize">
+                    {user?.app_metadata?.provider || 'email'}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-muted-foreground">Last Sign In</label>
+                  <p className="text-sm">
+                    {user?.last_sign_in_at 
+                      ? new Date(user.last_sign_in_at).toLocaleDateString()
+                      : 'Never'
+                    }
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <TabsContent value="security" className="space-y-6">
+          {/* Account Statistics */}
           <Card>
             <CardHeader>
-              <CardTitle>Change Password</CardTitle>
-              <CardDescription>Update your password to keep your account secure</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                />
-              </div>
-
-              <Button onClick={handleChangePassword}>
-                <Key className="mr-2 h-4 w-4" />
-                Change Password
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-destructive">Danger Zone</CardTitle>
-              <CardDescription>Irreversible account actions</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Account Statistics
+              </CardTitle>
+              <CardDescription>
+                Your account activity and usage
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete Account
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete your account
-                      and remove all your data from our servers.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive hover:bg-destructive/90">
-                      Delete Account
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-primary">0</div>
+                  <div className="text-sm text-muted-foreground">Notes Created</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-primary">0</div>
+                  <div className="text-sm text-muted-foreground">Goals Set</div>
+                </div>
+                <div className="text-center p-4 border rounded-lg">
+                  <div className="text-2xl font-bold text-primary">0</div>
+                  <div className="text-sm text-muted-foreground">Tasks Completed</div>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+
+          {/* Security Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Security
+              </CardTitle>
+              <CardDescription>
+                Your account security status
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">Email Verification</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {user?.email_confirmed_at ? 'Your email is verified' : 'Please verify your email'}
+                  </p>
+                </div>
+                <Badge variant={user?.email_confirmed_at ? 'default' : 'destructive'}>
+                  {user?.email_confirmed_at ? 'Verified' : 'Unverified'}
+                </Badge>
+              </div>
+              <div className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <h4 className="font-medium">Two-Factor Authentication</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Add an extra layer of security to your account
+                  </p>
+                </div>
+                <Badge variant="outline">Not Enabled</Badge>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };
